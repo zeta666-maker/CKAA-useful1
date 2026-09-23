@@ -1952,4 +1952,5 @@ if __name__ == "__main__":
         if args.save_model:
             print(' ----- Save model ----- ') 
             save_model_path = osp.join('specific-shared', 'logs', args.dataset, args.save_model_name+'.pkl')
+            os.makedirs(osp.dirname(save_model_path), exist_ok=True)
             torch.save(model.state_dict(), save_model_path)
