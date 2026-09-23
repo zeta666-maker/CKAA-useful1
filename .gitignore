@@ -1,0 +1,17 @@
+# Training checkpoints exceed GitHub's 100 MB per-file limit.
+**/specific-shared/
+**/*.pkl
+**/*.pt
+**/*.pth
+
+# Python and local runtime artifacts.
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Local logs and editor files.
+**/logs/*.txt
+.idea/
+.vscode/
+

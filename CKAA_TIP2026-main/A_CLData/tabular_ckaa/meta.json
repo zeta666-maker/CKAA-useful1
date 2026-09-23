@@ -1,0 +1,87 @@
+{
+  "format": "CKAA tabular windows",
+  "raw_root": "C:\\Users\\Administrator\\Desktop\\CKAA_TIP2026-main",
+  "window_length": 1568,
+  "stride": 1568,
+  "max_common_samples": 614400,
+  "train_ratio": 0.8,
+  "channels": [
+    "vibration",
+    "pressure_x",
+    "pressure_y",
+    "pressure_z"
+  ],
+  "labels": [
+    "A",
+    "B",
+    "B+G",
+    "C",
+    "E",
+    "G",
+    "H",
+    "H+N",
+    "N"
+  ],
+  "label_to_index": {
+    "A": 0,
+    "B": 1,
+    "B+G": 2,
+    "C": 3,
+    "E": 4,
+    "G": 5,
+    "H": 6,
+    "H+N": 7,
+    "N": 8
+  },
+  "normalization": {
+    "mean": [
+      0.004251847043633461,
+      0.0009938784642145038,
+      0.0011659743031486869,
+      0.0007862230413593352
+    ],
+    "std": [
+      6.852598016848788e-05,
+      0.03180690109729767,
+      0.010675009340047836,
+      0.01572827436029911
+    ]
+  },
+  "num_patches": 196,
+  "files": {
+    "train": {
+      "windows": "C:\\Users\\Administrator\\Desktop\\CKAA_TIP2026-main\\CKAA_TIP2026-main\\A_CLData\\tabular_ckaa\\train_windows.npy",
+      "labels": "C:\\Users\\Administrator\\Desktop\\CKAA_TIP2026-main\\CKAA_TIP2026-main\\A_CLData\\tabular_ckaa\\train_labels.npy",
+      "index": "C:\\Users\\Administrator\\Desktop\\CKAA_TIP2026-main\\CKAA_TIP2026-main\\A_CLData\\tabular_ckaa\\train_index.csv",
+      "num_samples": 5616,
+      "class_counts": {
+        "A": 624,
+        "B": 624,
+        "B+G": 624,
+        "C": 624,
+        "E": 624,
+        "G": 624,
+        "H": 624,
+        "H+N": 624,
+        "N": 624
+      }
+    },
+    "eval": {
+      "windows": "C:\\Users\\Administrator\\Desktop\\CKAA_TIP2026-main\\CKAA_TIP2026-main\\A_CLData\\tabular_ckaa\\eval_windows.npy",
+      "labels": "C:\\Users\\Administrator\\Desktop\\CKAA_TIP2026-main\\CKAA_TIP2026-main\\A_CLData\\tabular_ckaa\\eval_labels.npy",
+      "index": "C:\\Users\\Administrator\\Desktop\\CKAA_TIP2026-main\\CKAA_TIP2026-main\\A_CLData\\tabular_ckaa\\eval_index.csv",
+      "num_samples": 1422,
+      "class_counts": {
+        "A": 158,
+        "B": 158,
+        "B+G": 158,
+        "C": 158,
+        "E": 158,
+        "G": 158,
+        "H": 158,
+        "H+N": 158,
+        "N": 158
+      }
+    }
+  }
+}
