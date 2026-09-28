@@ -13,6 +13,7 @@ $cases = @(
     @{ Name = "fixed8"; Aqcl = "true"; Mode = "fixed"; Bits = "8"; Low = "8"; High = "8" },
     @{ Name = "fixed4"; Aqcl = "true"; Mode = "fixed"; Bits = "4"; Low = "4"; High = "4" },
     @{ Name = "fixed2"; Aqcl = "true"; Mode = "fixed"; Bits = "2"; Low = "2"; High = "2" },
+    @{ Name = "rpq_4_8"; Aqcl = "true"; Mode = "rpq"; Bits = "4"; Low = "4"; High = "8" },
     @{ Name = "rpq_saou_4_8"; Aqcl = "true"; Mode = "rpq_saou"; Bits = "4"; Low = "4"; High = "8" }
 )
 

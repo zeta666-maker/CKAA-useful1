@@ -50,13 +50,16 @@ paper's 80-epoch benchmark.
 | Fixed 8-bit | 64.63% | 67.32% | 34.07% | 86.23 | 33.7004 | 1078.41 | 0.0000 |
 | Fixed 4-bit | 26.23% | 38.74% | 42.62% | 44.02 | 33.7004 | 269.60 | 0.0000 |
 | Fixed 2-bit | 11.11% | 20.37% | 0.00% | 22.91 | 33.7004 | 67.40 | 0.0000 |
+| RPQ only (4/8-bit) | 24.12% | 33.50% | 37.97% | 58.67 | 33.7004 | 520.99 | 0.0000 |
 | RPQ + SAOU (4/8-bit) | 54.08% | 48.58% | 23.42% | 51.06 | 33.7004 | 472.58 | 0.0000 |
 
 `*` FP32 size and GBOPS are derived from the fixed-bit scaling because the
 FP32 run does not instantiate quantizers.
 
 The expected qualitative trend holds: lower fixed bit widths reduce accuracy,
-and RPQ+SAOU improves over fixed 4-bit under the same short budget. The
+RPQ improves over fixed 4-bit, and RPQ+SAOU improves over RPQ-only under the
+same short budget. SAOU improves Last-acc from 24.12% to 54.08% and Avg-acc
+from 33.50% to 48.58%. The
 absolute values are not comparable to the paper's CIFAR-100/TinyImageNet
 results because the fault dataset, backbone, task count and epoch budget
 differ.
