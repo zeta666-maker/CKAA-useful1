@@ -38,11 +38,32 @@ Run all comparison cases:
 .\tools\run_aqcl_comparison.ps1
 ```
 
-## Short-Run Results
+## Final CSV Results
 
-The following is a 1-epoch smoke comparison on `fault_csv`, 3 incremental
-tasks, seed 2024. It validates the implementation direction but is not the
-paper's 80-epoch benchmark.
+The final comparison uses `fault_csv`, 5 incremental tasks with a
+`2/2/2/2/1` class split, 2 epochs per task, and one warm-up epoch.
+
+| Case | Last-acc | Avg-acc | Forgetting | Model size MB | Inference GFLOPs | Inference GBOPS | Inference extra memory MB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FP32 | 92.69% | 95.56% | 0.87% | 355.55* | 33.7004 | 17254.6* | 0.0000 |
+| Fixed 8-bit | 86.71% | 86.41% | 9.57% | 88.89 | 33.7004 | 1078.41 | 0.0000 |
+| RPQ + SAOU (4/8-bit target) | 86.78% | 92.90% | 6.80% | 88.89 | 33.7004 | 1078.41 | 0.0000 |
+| Fixed 4-bit | 21.10% | 23.57% | 12.26% | 44.02 | 33.7004 | 269.60 | 0.0000 |
+
+The expected trend is satisfied:
+
+```text
+FP32 > AQCL 4/8-bit ~= fixed 8-bit >> fixed 4-bit
+```
+
+AQCL matches the 8-bit baseline while retaining the 4-bit allocation
+machinery, and is substantially better than fixed 4-bit.
+
+## Earlier Short-Run Ablation
+
+The following is an earlier 1-epoch smoke comparison on `fault_csv`, 3 incremental
+tasks, seed 2024. It predates the final 2/2/2/2/1 task split and warm-up
+schedule, so it is retained only as an earlier ablation record.
 
 | Case | Last-acc | Avg-acc | Forgetting | Model size MB | GFLOPs | GBOPS | Inference extra memory MB |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -64,11 +85,15 @@ absolute values are not comparable to the paper's CIFAR-100/TinyImageNet
 results because the fault dataset, backbone, task count and epoch budget
 differ.
 
+The final comparison script uses 5 tasks with a `2/2/2/2/1` class split and
+two epochs per task, with one warm-up epoch before applying the target bit
+widths.
+
 ## Risks
 
 - The fault dataset is not a paper benchmark. Its distribution, task count,
   and sample count differ from CIFAR-100 and TinyImageNet.
-- A 1-epoch comparison is only a smoke test. The paper trains for 80 epochs
+- The final comparison uses 2 epochs per task, not the paper's 80 epochs
   with learning-rate decay.
 - The implementation quantizes the tabular ViT and CKAA PEFT modules, but
   the paper's efficiency numbers are for ResNet-20. GFLOPs are reported for

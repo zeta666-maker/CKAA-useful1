@@ -22,10 +22,10 @@ foreach ($case in $cases) {
     $arguments = @(
         (Join-Path $Root "train_aqcl.py"),
         "-d", "fault_csv",
-        "-t", "3",
+        "-t", "5",
         "-m", "vit_base_patch16_224.augreg_in21k",
         "-b", "32",
-        "-e", "1",
+        "-e", "2",
         "-jt", "0",
         "-je", "0",
         "-et", "1",
@@ -52,7 +52,8 @@ foreach ($case in $cases) {
         "--aqcl-bits", $case.Bits,
         "--aqcl-low-bits", $case.Low,
         "--aqcl-high-bits", $case.High,
-        "--aqcl-fisher-batches", "1"
+        "--aqcl-fisher-batches", "2",
+        "--aqcl-warmup-epochs", "1"
     )
     python @arguments
 }

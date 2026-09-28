@@ -35,12 +35,17 @@ def parse_args():
     parser.add_argument("--aqcl-alpha", type=float, default=5.0)
     parser.add_argument("--aqcl-theta", type=float, default=0.5)
     parser.add_argument("--aqcl-fisher-batches", type=int, default=8)
+    parser.add_argument("--aqcl-warmup-epochs", type=int, default=1)
     parser.add_argument("--aqcl-report", type=misc.str2bool, default=True)
     aqcl_args, remaining = parser.parse_known_args(sys.argv[1:])
     sys.argv = [sys.argv[0]] + remaining
     ckaa_args = ckaa.get_args()
     for key, value in vars(aqcl_args).items():
         setattr(ckaa_args, key, value)
+    # AQCL experiments follow the tabular CKAA baseline: the shared prompt is
+    # fixed after the first task, and routing uses the selected task head.
+    ckaa_args.freeze_shared_prompts_after_first = True
+    ckaa_args.eval_local_task_head_task_only = True
     ckaa.args = ckaa_args
     return ckaa_args
 
@@ -103,6 +108,36 @@ def main():
 
     context = None
     model = None
+    original_train_one_epoch = ckaa.train_one_epoch
+
+    def train_one_epoch_with_warmup(
+        GVM_,
+        taskid_,
+        curr_epoch,
+        dataloader_,
+        model_,
+        criterion_,
+        optimizer_,
+        *args_,
+        **kwargs_,
+    ):
+        if context is not None:
+            warmup_epochs = max(int(args.aqcl_warmup_epochs), 0)
+            context.set_quantization_enabled(curr_epoch > warmup_epochs)
+        return original_train_one_epoch(
+            GVM_,
+            taskid_,
+            curr_epoch,
+            dataloader_,
+            model_,
+            criterion_,
+            optimizer_,
+            *args_,
+            **kwargs_,
+        )
+
+    ckaa.train_one_epoch = train_one_epoch_with_warmup
+
     for taskid, current_task_classes in GVM.cl_mngr:
         print(f"{'#' * 30} Task: [{taskid + 1}/{GVM.cl_mngr.num_tasks}] {'#' * 30}")
         print(f"Current classes ({len(current_task_classes)}): {current_task_classes}")
@@ -155,6 +190,7 @@ def main():
                     pin_memory=True,
                 )
                 criterion = nn.CrossEntropyLoss().to(model_.module.device)
+                context.set_quantization_enabled(True)
                 context.after_task(
                     model_.module if isinstance(model_, nn.DataParallel) else model_,
                     dataloader,

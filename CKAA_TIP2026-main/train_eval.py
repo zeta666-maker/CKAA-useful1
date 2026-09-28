@@ -227,6 +227,12 @@ def get_args():
         help='Use only the selected task head for final classification.',
     )
     parser.add_argument(
+        '--eval-local-task-head-task-only',
+        type=misc.str2bool,
+        default=False,
+        help='Use the selected task-specific head without global-head fallback.',
+    )
+    parser.add_argument(
         '--freeze-shared-prompts-after-first',
         type=misc.str2bool,
         default=False,
@@ -957,18 +963,21 @@ def evaluate_one_task(GVM: GlobalVarsManager, train_taskid: int, eval_taskid: in
                         for task_id in range(train_taskid + 1):
                             selected = selected_id == task_id
                             if selected.any():
-                                task_classes = GVM.cl_mngr.get_classes(task_id)
-                                class_start = task_id * GVM.cl_mngr.num_classes_per_task
-                                class_end = class_start + len(task_classes)
-                                if (
-                                    torch.linalg.norm(
-                                        model.module.head.weight[class_start:class_end]
-                                    )
-                                    > 1e-3
-                                ):
-                                    task_out = model.module.head(feat_sp)
-                                else:
+                                if args.eval_local_task_head_task_only:
                                     task_out = model.module.task_head[task_id](feat_sp)
+                                else:
+                                    task_classes = GVM.cl_mngr.get_classes(task_id)
+                                    class_start = task_id * GVM.cl_mngr.num_classes_per_task
+                                    class_end = class_start + len(task_classes)
+                                    if (
+                                        torch.linalg.norm(
+                                            model.module.head.weight[class_start:class_end]
+                                        )
+                                        > 1e-3
+                                    ):
+                                        task_out = model.module.head(feat_sp)
+                                    else:
+                                        task_out = model.module.task_head[task_id](feat_sp)
                                 local_logits[selected] = task_out[selected, :logits.shape[1]]
                         logits = local_logits
 

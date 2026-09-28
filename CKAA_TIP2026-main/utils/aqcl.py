@@ -26,9 +26,10 @@ def _as_int(value) -> int:
 class UniformQuantizer(nn.Module):
     """Asymmetric uniform quantizer with a straight-through estimator."""
 
-    def __init__(self, bits: int = 8):
+    def __init__(self, bits: int = 8, per_channel: bool = False):
         super().__init__()
         self.register_buffer("bits", torch.tensor(int(bits), dtype=torch.int64))
+        self.per_channel = bool(per_channel)
 
     @property
     def num_bits(self) -> int:
@@ -41,8 +42,13 @@ class UniformQuantizer(nn.Module):
         bits = self.num_bits
         if bits >= 32 or bits <= 0:
             return x
-        x_min = x.detach().amin()
-        x_max = x.detach().amax()
+        if self.per_channel and x.ndim >= 2:
+            reduce_dims = tuple(range(1, x.ndim))
+            x_min = x.detach().amin(dim=reduce_dims, keepdim=True)
+            x_max = x.detach().amax(dim=reduce_dims, keepdim=True)
+        else:
+            x_min = x.detach().amin()
+            x_max = x.detach().amax()
         level = (x_max - x_min) / float((1 << bits) - 1)
         level = level.clamp_min(torch.finfo(x.dtype).eps)
         q = torch.round((x - x_min) / level) * level + x_min
@@ -62,7 +68,7 @@ class QATLinear(nn.Linear):
             self.load_state_dict(source.state_dict())
         else:
             super().__init__(source, out_features, bias=bias, device=device, dtype=dtype)
-        self.weight_quant = UniformQuantizer(low_bits)
+        self.weight_quant = UniformQuantizer(low_bits, per_channel=True)
         self.activation_quant = UniformQuantizer(low_bits)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -87,7 +93,7 @@ class QATConv1d(nn.Conv1d):
             dtype=source.weight.dtype,
         )
         self.load_state_dict(source.state_dict())
-        self.weight_quant = UniformQuantizer(low_bits)
+        self.weight_quant = UniformQuantizer(low_bits, per_channel=True)
         self.activation_quant = UniformQuantizer(low_bits)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -155,6 +161,9 @@ class AQCLContext:
         self.covariance_count: dict[str, int] = {}
         self.subspaces: dict[str, dict[str, Tensor]] = {}
         self.last_mac_profile: dict[str, float] = {}
+        self.active_weight_bits: dict[str, int] = {}
+        self.active_activation_bits: dict[str, int] = {}
+        self.quantization_enabled = True
         self.before_task(0)
 
     @property
@@ -167,13 +176,42 @@ class AQCLContext:
                 yield name, module
 
     def set_bits(self, weight_bits: dict[str, int], activation_bits: dict[str, int]) -> None:
+        self.active_weight_bits = dict(weight_bits)
+        self.active_activation_bits = dict(activation_bits)
+        if not self.quantization_enabled:
+            return
         for name, module in self.targets.items():
             module.weight_quant.set_bits(weight_bits.get(name, self.low_bits))
             module.activation_quant.set_bits(activation_bits.get(name, self.low_bits))
 
+    def set_quantization_enabled(self, enabled: bool) -> None:
+        self.quantization_enabled = bool(enabled)
+        if enabled:
+            for name, module in self.targets.items():
+                module.weight_quant.set_bits(
+                    self.active_weight_bits.get(name, self.low_bits)
+                )
+                module.activation_quant.set_bits(
+                    self.active_activation_bits.get(name, self.low_bits)
+                )
+        else:
+            for module in self.targets.values():
+                module.weight_quant.set_bits(32)
+                module.activation_quant.set_bits(32)
+
     def register_target(self, name: str, module: nn.Module) -> None:
         if isinstance(module, (QATLinear, QATConv1d)):
             self.targets[name] = module
+            if self.quantization_enabled:
+                module.weight_quant.set_bits(
+                    self.active_weight_bits.get(name, self.low_bits)
+                )
+                module.activation_quant.set_bits(
+                    self.active_activation_bits.get(name, self.low_bits)
+                )
+            else:
+                module.weight_quant.set_bits(32)
+                module.activation_quant.set_bits(32)
 
     def before_task(self, taskid: int) -> None:
         if self.mode == "fixed":
