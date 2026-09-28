@@ -179,6 +179,7 @@ class ImagePathDatasetClassManager():
             'cub': partial(CUB200Path, root_dir="../datasets/data.CUB" if not (v := kwargs.get('cub')) else v),
             'stanford_cars': partial(StanfordCarsPath, root_dir="../datasets/data.stanford_cars" if not (v := kwargs.get('stanford_cars')) else v),
             'tabular': partial(TabularPathDataset, root_dir="A_CLData/tabular_ckaa" if not (v := kwargs.get('tabular')) else v),
+            'fault_csv': partial(TabularPathDataset, root_dir="A_CLData/fault_csv" if not (v := kwargs.get('fault_csv')) else v),
         }
 
     def __getitem__(self, dataset: str) -> ImageNetRPath | CIFAR100Path:
@@ -477,7 +478,7 @@ class Mixup:
 def define_dataset(GVM, task_classes: list[int], training: bool, transform_type: str = 'timm', target_map_to_local: bool = True,
                    use_eval_transform: bool = False, expand_times: int = 1, **kwargs) -> ClassIncremantalDataset:
     _current_dataset = GVM.args.dataset
-    if _current_dataset == 'tabular':
+    if _current_dataset in ('tabular', 'fault_csv'):
         return define_tabular_dataset(
             GVM,
             task_classes,

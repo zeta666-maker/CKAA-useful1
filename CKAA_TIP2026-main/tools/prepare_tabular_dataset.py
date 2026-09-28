@@ -23,7 +23,7 @@ def get_args():
     parser.add_argument(
         "--output-root",
         type=str,
-        default=str(ROOT / "A_CLData" / "tabular_ckaa"),
+        default=str(ROOT / "A_CLData" / "fault_csv"),
     )
     parser.add_argument("--window-length", type=int, default=1568)
     parser.add_argument("--stride", type=int, default=1568)

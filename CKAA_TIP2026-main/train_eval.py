@@ -92,7 +92,7 @@ def get_args():
 
     parser = argparse.ArgumentParser(description='Class-incremental Learning')
     parser.add_argument('-d', '--dataset', type=str, default='imagenet_a',
-                    choices=('cifar100', 'imagenet_r', 'imagenet_a', 'sdomainet', 'cub', 'stanford_cars', 'tabular'), help='use lowercase')
+                    choices=('cifar100', 'imagenet_r', 'imagenet_a', 'sdomainet', 'cub', 'stanford_cars', 'tabular', 'fault_csv'), help='use lowercase')
     ## logs_out parameters
     parser.add_argument('--logs-dir', type=str, default='logs/')
     parser.add_argument('-sf', '--logs-suffix', type=str, default = '10s_imagenet_a')
@@ -100,9 +100,9 @@ def get_args():
     parser.add_argument('--seed', type=int, default=2024)
 
     ## training settings
-    parser.add_argument('--save-model', type=bool, default=False)
+    parser.add_argument('--save-model', type=misc.str2bool, default=False)
     parser.add_argument('--save-model-name', type=str, default='model_10s')
-    parser.add_argument('--evaluation', type=bool, default=False, help='evaluating through trained model')
+    parser.add_argument('--evaluation', type=misc.str2bool, default=False, help='evaluating through trained model')
     parser.add_argument('--evaluation-model-name', type=str, default='model_20s')
 
     parser.add_argument('-t', '--num_tasks', type=int, default=10, choices=(1, 2, 3, 5, 10, 20, 25, 50, 100)) 
@@ -126,7 +126,7 @@ def get_args():
     parser.add_argument('--seperate_head', type=misc.str2bool, default=True)
 
     ## null-space
-    parser.add_argument('--use_null_space', type=bool, default=True)
+    parser.add_argument('--use_null_space', type=misc.str2bool, default=True)
 
     parser.add_argument('--null_patterns', type=str, nargs='+', default=('sh_prompt'))
     parser.add_argument('--null_thres_mode', type=str, choices=('adaptive', 'times'), default='adaptive')
@@ -166,8 +166,8 @@ def get_args():
     parser.add_argument('-dm', '--decay_milestones', type=int, nargs='+', default=[5,8]) ## [5, 8]
     parser.add_argument('--decay_epochs', type=int, default=1000)
     parser.add_argument('--decay_rate', type=float, default=0.1)
-    parser.add_argument('--show_bar', type=bool, default=True)
-    parser.add_argument('--print_model', type=bool, default=True)
+    parser.add_argument('--show_bar', type=misc.str2bool, default=True)
+    parser.add_argument('--print_model', type=misc.str2bool, default=True)
 
     ## additional hyper-parameters
     parser.add_argument('--prompt-len-sh', type=float, default=4)
@@ -187,13 +187,13 @@ def get_args():
     parser.add_argument('--task-detector', type=str, default='logit', choices=('logit',))
     parser.add_argument('--eval-task-weight', type=misc.str2bool, default=True)
     parser.add_argument('-tc', '--eval-tau', type=float, default=3.)
-    parser.add_argument('--nearest-class-selection', type=bool, default=True)
+    parser.add_argument('--nearest-class-selection', type=misc.str2bool, default=True)
     parser.add_argument('-kc', '--prototype-k', type=int, default=20)
     parser.add_argument('--prototype-temperature', type=float, default=0.1)
     parser.add_argument('--prototype-confidence-weight', type=float, default=0.0)
 
     parser.add_argument('--prototype-ratio', type=int, default=0.1)
-    parser.add_argument('--topk-adapter-selection', type=bool, default=False, help='select topk adapter for evaluation')
+    parser.add_argument('--topk-adapter-selection', type=misc.str2bool, default=False, help='select topk adapter for evaluation')
     parser.add_argument('--adapter-k', type=int, default=100)
     parser.add_argument('--eval-adapter-scale', type=float, default=1.0)
     parser.add_argument(
@@ -232,11 +232,11 @@ def get_args():
         default=False,
         help='Freeze the shared prompt after the first task.',
     )
-    parser.add_argument('--max-logit-score', type=bool, default=False)
+    parser.add_argument('--max-logit-score', type=misc.str2bool, default=False)
 
-    parser.add_argument('--previous-head', type=bool, default=True)
-    parser.add_argument('--prototype-classifier', type=bool, default=True)
-    parser.add_argument('--copy-weight', type=bool, default=False, help='copy adapter weights from the previous task')
+    parser.add_argument('--previous-head', type=misc.str2bool, default=True)
+    parser.add_argument('--prototype-classifier', type=misc.str2bool, default=True)
+    parser.add_argument('--copy-weight', type=misc.str2bool, default=False, help='copy adapter weights from the previous task')
 
     parser.add_argument('--training_string', type=str, nargs='+', 
                     default=('prompt','head', 'adapter', 'prototypes'))
@@ -257,7 +257,7 @@ def get_args():
     print(args)
 
     args.prompt_num_tasks = args.num_tasks
-    if args.dataset == 'tabular' and 'patch_embed' not in args.training_string:
+    if args.dataset in ('tabular', 'fault_csv') and 'patch_embed' not in args.training_string:
         args.training_string = tuple(args.training_string) + ('patch_embed',)
     if args.evaluation == True or 'debug' in args.logs_suffix:
         args.save_model = False
@@ -276,6 +276,8 @@ def get_args():
         args.data_root = 'A_CLData/stanford_cars'
     elif args.dataset == 'tabular':
         args.data_root = 'A_CLData/tabular_ckaa'
+    elif args.dataset == 'fault_csv':
+        args.data_root = 'A_CLData/fault_csv'
     else:
         raise ValueError(args.dataset)
 
@@ -312,7 +314,7 @@ def set_model_mode(GVM: GlobalVarsManager, taskid: int, model: VisionTransformer
     
     for n, p in model.named_parameters():
         if training and any([_s in n for _s in training_string]):
-            if getattr(GVM.args, 'dataset', None) == 'tabular' and taskid > 0 and 'patch_embed' in n:
+            if getattr(GVM.args, 'dataset', None) in ('tabular', 'fault_csv') and taskid > 0 and 'patch_embed' in n:
                 p.requires_grad_(False)
             elif (
                 getattr(GVM.args, 'freeze_shared_prompts_after_first', False)
@@ -1283,7 +1285,8 @@ def evaluate_tasks_sofar(GVM: GlobalVarsManager, train_taskid: int, model: Visio
     if pretrained_model_path is not None:
         # Uneven splits such as 2/2/2/2/1 have fewer output classes than
         # num_tasks * num_classes_per_task.
-        model.module.head = nn.Linear(
+        _head_class = model.module.head.__class__
+        model.module.head = _head_class(
             model.module.embed_dim,
             len(GVM.cl_mngr.sofar_task_classes),
         )
@@ -1479,6 +1482,9 @@ def modify_head(GVM: GlobalVarsManager, model: VisionTransformer, training: bool
             _mdevice = _mh.weight.device
             _mdtype = _mh.weight.dtype
             model.module.head = _mh.__class__(_mh.in_features, len(_target_classes), _mh.bias is not None, _mdevice, _mdtype)
+            if hasattr(_mh, 'weight_quant') and hasattr(model.module.head, 'weight_quant'):
+                model.module.head.weight_quant.set_bits(_mh.weight_quant.num_bits)
+                model.module.head.activation_quant.set_bits(_mh.activation_quant.num_bits)
             model.module.head.requires_grad_(_mh.weight.requires_grad)
             ## task2 : [20, 768]
             if training:
@@ -1913,7 +1919,7 @@ if __name__ == "__main__":
             model: VisionTransformer = timm.create_model(args.model, pretrained=True, pretrained_strict=False, 
                                                         **_head_dim_arg_dict,
                                                         prompt_args_dict=_prompt_args_dict, other_args_dict=_other_args_dict)
-            if args.dataset == 'tabular':
+            if args.dataset in ('tabular', 'fault_csv'):
                 model = convert_vit_to_tabular(
                     model,
                     signal_length=args.tabular_window_length,

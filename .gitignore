@@ -9,9 +9,9 @@
 **/*.py[cod]
 **/.pytest_cache/
 **/.mypy_cache/
+**/A_CLData/fault_csv/
 
 # Local logs and editor files.
 **/logs/*.txt
 .idea/
 .vscode/
-
